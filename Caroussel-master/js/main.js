@@ -37,9 +37,14 @@ class Carousel {
             loop: false
         }, options)
         let children = [].slice.call(element.children)
+        this.isMobile = false
         this.currentItem = 0
+        
+        
+        //modifications du DOM
         this.root = this.createDivWithClass('carousel')
         this.container = this.createDivWithClass('carousel__container')
+        this.root.setAttribute('tabindex', '0')
         this.root.appendChild(this.container)
         this.element.appendChild(this.root)
         this.moveCallBacks = []
@@ -51,15 +56,27 @@ class Carousel {
         })
         this.setStyle()
         this.createNavigation()
+        
+        
+        //Evennements
         this.moveCallBacks.forEach(cb => cb(0))
+        this.onWindowResize()
+        window.addEventListener('resize', this.onWindowResize.bind(this))
+        this.root.addEventListener('keyup', e => {
+            if (e.key === 'ArrowRight' || e.key === 'Right'){
+                this.next()
+            } else if (e.key === 'ArrowLeft'|| e.key === 'Left') {
+                this.prev()
+            }
+        })
     }
             /**
              * applique les bonnes dimensions au carousel
              */
     setStyle () {
-        let ratio = this.items.length / this.options.slidesVisible
+        let ratio = this.items.length / this.slidesVisible
         this.container.style.width = (ratio * 100) + "%"
-        this.items.forEach(item => item.style.width = ((100 / this.options.slidesVisible / ratio) + "%"))
+        this.items.forEach(item => item.style.width = ((100 / this.slidesVisible / ratio) + "%"))
             
         }
     createNavigation () {
@@ -78,7 +95,7 @@ class Carousel {
             }else {
                 prevButton.classList.remove('carousel__prev--hidden')
             }
-            if (this.items[this.currentItem + this.options.slidesVisible]=== undefined){
+            if (this.items[this.currentItem + this.slidesVisible]=== undefined){
                 nextButton.classList.add('carousel__next--hidden')
             }else{
                 nextButton.classList.remove('carousel__next--hidden')
@@ -87,11 +104,11 @@ class Carousel {
     }
 
     next(){
-        this.gotoItem (this.currentItem + this.options.slidesToScroll)
+        this.gotoItem (this.currentItem + this.slidesToScroll)
     }
     
     prev(){
-        this.gotoItem (this.currentItem - this.options.slidesToScroll)
+        this.gotoItem (this.currentItem - this.slidesToScroll)
     }
     
 
@@ -105,9 +122,17 @@ class Carousel {
     
     gotoItem (index){
         if (index < 0){
-            index = this.items.length - this.options.slidesVisible
-        } else if (index >= this.items.length || (this.items[this.currentItem + this.options.slidesVisible] === undefined && index > this.currentItem)) {
-            index = 0
+            if (this.options.loop){
+                index = this.items.length - this.slidesVisible
+            } else {
+                return
+            }
+        } else if (index >= this.items.length || (this.items[this.currentItem + this.slidesVisible] === undefined && index > this.currentItem)) {
+            if (this.options.loop){
+                index = 0
+            } else {
+                return
+            }
         }
         let translateX = index * -100 / this.items.length 
         this.container.style.transform = 'translate3d(' + translateX + '%, 0, 0)'
@@ -123,6 +148,15 @@ class Carousel {
     onMove(cb){
         this.moveCallBacks.push(cb)
     }
+
+    onWindowResize (){
+        let mobile = window.innerWidth < 800 
+        if (mobile !== this.isMobile){
+            this.isMobile = mobile
+            this.setStyle()
+            this.moveCallBacks.forEach(cb => cb(this.currentItem))
+        }
+    }
     
     /**
      * 
@@ -137,6 +171,22 @@ class Carousel {
         return div
     };
 
+    /**
+    * 
+    * @returns(number)
+    */
+    get slidesToScroll(){
+        return this.isMobile ? 1 : this.options.slidesToScroll
+    }
+    
+    
+    /**
+    * 
+    * @returns(number)
+    */    
+    get slidesVisible(){
+        return this.isMobile ? 1 : this.options.slidesVisible
+    }
     
 }
 
@@ -154,7 +204,7 @@ class Carousel {
 
         new Carousel (document.querySelector('#carousel1'), {
             slidesToScroll: 2,
-            slidesVisible: 2
+            slidesVisible: 2,
         });
 
         new Carousel (document.querySelector('#carousel2')
@@ -162,7 +212,8 @@ class Carousel {
         
         new Carousel (document.querySelector('#carousel3'), {
             slidesToScroll: 2,
-            slidesVisible: 2
+            slidesVisible: 2,
+            loop: true
         });
         
        
